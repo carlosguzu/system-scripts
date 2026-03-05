@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 
-if ! hyprshot -m region --raw | wl-copy; then
+MODE=${1:-region}
+
+if ! hyprshot -m "$MODE" --raw | wl-copy; then
     exit 0
 fi
 
@@ -16,8 +18,16 @@ DIR="$HOME/Pictures/Screenshots"
 mkdir -p "$DIR"
 FINAL_FILE="$DIR/satty-$(date '+%Y%m%d-%H%M%S').png"
 
+if [ "$MODE" == "window" ]; then
+    TITLE="📸 Ventana Capturada"
+elif [ "$MODE" == "output" ]; then
+    TITLE="📸 Pantalla Capturada"
+else
+    TITLE="📸 Región Capturada"
+fi
+
 ACTION=$(notify-send -u low -i "$TMP_FILE" \
-    "📸 Captura Lista" \
+    "$TITLE" \
     "<i>Copiada al portapapeles.</i>" \
     --action="edit=✏️ Editar en Satty")
 
