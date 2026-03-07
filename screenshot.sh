@@ -1,46 +1,61 @@
 #!/usr/bin/env bash
 
+# --- CONTROL DE INSTANCIAS (EL CANDADO) ---
+# Abrimos el canal 9 y le ponemos un candado. Si ya está bloqueado, el script sale.
+exec 9> /tmp/screenshot_lock
+if ! flock -n 9; then
+    exit 0
+fi
+# ------------------------------------------
+
+# ¡EL SALVAVIDAS! Esto garantiza que el congelamiento se destruya siempre al salir.
+trap 'pkill -9 hyprpicker 2>/dev/null' EXIT
+
 MODE=${1:-region}
 
 ID=$(date +%s%N)
 TMP_FILE="/tmp/screenshot_${ID}.png"
 
 # --- MAGIA DEL FREEZE ---
-# Iniciamos hyprpicker en modo silencioso (-r) y congelado (-z) en segundo plano (&)
+pkill -9 hyprpicker 2>/dev/null
 hyprpicker -r -z &
-PICKER_PID=$!
-sleep 0.2 # Le damos una fracción de segundo para que la pantalla se congele
+sleep 0.2
 # ------------------------
 
 case "$MODE" in
     "region")
-        grim -g "$(slurp)" "$TMP_FILE"
+        GEOMETRY=$(slurp)
         TITLE="📸 Región Capturada"
         ;;
     "output")
-        grim -g "$(slurp -o)" "$TMP_FILE"
+        GEOMETRY=$(slurp -o)
         TITLE="📸 Pantalla Capturada"
         ;;
     "window")
-        # Le pasamos las coordenadas de todas las ventanas a slurp para que haga "imán"
         GEOMETRY=$(hyprctl clients -j | jq -r '.[] | select(.hidden==false) | "\(.at[0]),\(.at[1]) \(.size[0])x\(.size[1])"' | slurp)
-        grim -g "$GEOMETRY" "$TMP_FILE"
         TITLE="📸 Ventana Capturada"
         ;;
     *)
-        grim -g "$(slurp)" "$TMP_FILE"
+        GEOMETRY=$(slurp)
         TITLE="📸 Región Capturada"
         ;;
 esac
 
-# --- FIN DEL FREEZE ---
-# Matamos el proceso de hyprpicker para descongelar la pantalla
-if [ -n "$PICKER_PID" ]; then
-    kill $PICKER_PID 2>/dev/null
+# Si cancelaste con ESC, slurp devuelve vacío. El script sale y el 'trap' descongela.
+if [ -z "$GEOMETRY" ]; then
+    exit 0
 fi
-# ----------------------
 
-# Si cancelaste con ESC, slurp falla y no se crea el temporal. Salimos limpiamente.
+# Tomamos la captura usando las coordenadas exactas
+grim -g "$GEOMETRY" "$TMP_FILE"
+
+# Descongelamos inmediatamente apenas se toma la foto
+pkill -9 hyprpicker 2>/dev/null
+
+# ABRIMOS EL CANDADO: Cerramos el canal 9 para que puedas tomar otra captura
+# incluso si la notificación actual todavía está en pantalla.
+exec 9>&-
+
 if [ ! -s "$TMP_FILE" ]; then
     exit 0
 fi
