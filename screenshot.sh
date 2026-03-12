@@ -69,7 +69,7 @@ ACTION=$(notify-send -u low -i "$TMP_FILE" \
     "<i> ¿Qué quieres hacer?</i>" \
     --action="edit=  ✏️"\
     --action="copy= 📋"\
-    --action="save= 💾" -t 10000)
+    --action="save= 💾" -t 60000)
 
 case "$ACTION" in
     "edit")

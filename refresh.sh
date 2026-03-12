@@ -19,4 +19,4 @@ waybar &
 pkill swayosd-server
 swayosd-server &
 
-notify-send "Configuración recargada" 
+notify-send "Configuración recargada" -t 2000
