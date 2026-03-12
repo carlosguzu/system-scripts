@@ -1,8 +1,7 @@
 #!/usr/bin/env bash
 
 sleep 1
-# 1. Reproducir tu sonido en segundo plano
-pw-play /home/carlosg/Downloads/sounds/snorcon-high-battery-charge-421821.mp3 &
+
 
 # 2. Obtener la hora actual (solo el número, ej: 08, 14, 21)
 HOUR=$(date +%H)
@@ -26,3 +25,12 @@ fi
 
 # 4. Enviar la notificación al escritorio
 notify-send "👋 Welcome back" "$MESSAGE"
+
+# 1. Reproducir tu sonido en segundo plano
+
+wpctl set-volume @DEFAULT_AUDIO_SINK@ 1.1
+
+pw-play /home/carlosg/Downloads/sounds/snorcon-high-battery-charge-421821.mp3 
+
+wpctl set-volume @DEFAULT_AUDIO_SINK@ 0.7
+
