@@ -7,8 +7,12 @@ SOUND_FILE="/home/carlosg/Downloads/sounds/47313572-ui-navigation-sound-270299.m
 # 1. FUNCIÓN PARA MONITOREAR LA BATERÍA
 # ==========================================
 monitor_battery() {
-    local low_notified=0
-    local full_notified=0
+    # Nivel de brillo al que bajará cuando llegue al 7%
+    local BRIGHTNESS_LOW="10%"
+    
+    # Variables de control (Sistema Anti-Spam)
+    local NOTIFIED_100=false
+    local NOTIFIED_7=false
 
     while true; do
         # Buscamos la carpeta de la batería (suele ser BAT0 o BAT1)
@@ -17,29 +21,33 @@ monitor_battery() {
         # Si encuentra una batería, leemos su estado
         if [[ -n "$BATTERY_DIR" ]]; then
             CAPACITY=$(cat "$BATTERY_DIR/capacity")
-            STATUS=$(cat "$BATTERY_DIR/status") # Puede ser: Charging, Discharging, Full
+            STATUS=$(cat "$BATTERY_DIR/status")
 
-            # Lógica para batería baja (15% o menos)
-            if [[ "$STATUS" == "Discharging" && "$CAPACITY" -le 15 ]]; then
-                if [[ "$low_notified" -eq 0 ]]; then
-                    # -u critical hace que la notificación sea urgente (suele saltarse el "No Molestar")
-                    notify-send -u critical "⚠️ Batería Baja" "Te queda $CAPACITY%. ¡Conecta el cargador!"
+            # ==========================================
+            # CASO 1: BATERÍA AL 100% (Y NO DESCARGANDO)
+            # ==========================================
+            if [ "$CAPACITY" -eq 100 ] && [ "$STATUS" != "Discharging" ]; then
+                if [ "$NOTIFIED_100" = false ]; then
+                    notify-send -u normal -t 5000 "🔋 Batería al 100%" "<i>Por favor, desconecta el cargador.</i>"
                     pw-play "$SOUND_FILE" &
-                    low_notified=1
+                    NOTIFIED_100=true
                 fi
-                full_notified=0 # Reseteamos la alerta de carga completa
-                
-            # Lógica para batería llena (100%)
-            elif [[ "$STATUS" == "Charging" || "$STATUS" == "Full" ]]; then
-                low_notified=0 # Reseteamos la alerta de batería baja porque ya se conectó
-                
-                if [[ "$CAPACITY" -eq 100 && "$full_notified" -eq 0 ]]; then
-                    notify-send "✅ Batería Llena" "La carga está al 100%. Puedes desconectar." -t 5000
+            elif [ "$CAPACITY" -lt 100 ]; then
+                NOTIFIED_100=false
+            fi
+
+            # ==========================================
+            # CASO 2: BATERÍA AL 7% (Y DESCARGANDO)
+            # ==========================================
+            if [ "$CAPACITY" -le 7 ] && [ "$STATUS" == "Discharging" ]; then
+                if [ "$NOTIFIED_7" = false ]; then
+                    notify-send -u critical -t 10000 "🪫 Batería Crítica ($CAPACITY%)" "<i>¡Conecta el cargador ahora! Bajando brillo...</i>"
+                    brightnessctl set "$BRIGHTNESS_LOW"
                     pw-play "$SOUND_FILE" &
-                    full_notified=1
-                elif [[ "$CAPACITY" -lt 100 ]]; then
-                    full_notified=0
+                    NOTIFIED_7=true
                 fi
+            elif [ "$CAPACITY" -gt 7 ] && [ "$STATUS" == "Charging" ]; then
+                NOTIFIED_7=false
             fi
         fi
 
