@@ -96,13 +96,15 @@ udevadm monitor --udev --property --subsystem-match=usb | while read -r line; do
                 device_name="Dispositivo USB"
             fi
 
+	    nombre_limpio=$(echo "$device_name" | sed -E 's/^[0-9]+\s*//') 
+
             # Evaluamos si fue conexión o desconexión
             if [[ "$action" == "add" ]]; then
-                notify-send "🔌 USB Conectado" "$device_name" -t 3000
+                notify-send "🔌 USB Conectado" "$nombre_limpio" -t 3000
                 pw-play "$SOUND_FILE" &
 
             elif [[ "$action" == "remove" ]]; then
-                notify-send "🔌 USB Desconectado" "$device_name" -t 3000
+                notify-send "🔌 USB Desconectado" "$nombre_limpio" -t 3000
                 pw-play "$SOUND_FILE" &
             fi
         fi
