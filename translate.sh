@@ -6,7 +6,7 @@ raw_text=$(wl-paste --primary || xclip -o -selection primary | tr -d '\n' | sed 
 
 encoded_text=$(echo "$raw_text" | jq -sRr @uri)
 instancia="https://lingva.ml"
-icono="/home/carlosg/nixos-dotfiles/icons/translate.png"
+icono="/home/carlosg/nixos-dotfiles/img/translate.png"
 historial="$HOME/Documents/translate-history.md"
 
 # 2. Traducir

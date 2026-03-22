@@ -62,7 +62,7 @@ monitor_battery &
 # ==========================================
 # 2. MONITOR UNIVERSAL DE USB Y ALMACENAMIENTO
 # ==========================================
-ICON_PATH="/home/carlosg/nixos-dotfiles/icons/usb.png"
+ICON_PATH="/home/carlosg/nixos-dotfiles/img/usb.png"
 
 # Ahora escuchamos a DOS subsistemas: usb (hardware general) y block (discos)
 udevadm monitor --udev --property --subsystem-match=usb --subsystem-match=block | while read -r line; do

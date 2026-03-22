@@ -30,4 +30,4 @@ elif [[ "$opcion" == "COP a USD" ]]; then
     mensaje=" ${cifra_limpia} COP equivalen a  ${resultado} USD"
 fi
 
-notify-send -i "/home/carlosg/nixos-dotfiles/icons/conversion.png" "Calculadora de Divisas" "$mensaje" -t 10000
+notify-send -i "/home/carlosg/nixos-dotfiles/img/conversion.png" "Calculadora de Divisas" "$mensaje" -t 10000

@@ -5,7 +5,7 @@ raw_word=$(wl-paste --primary || xclip -o -selection primary | tr -d '[:space:]'
 [ -z "$raw_word" ] && exit 1
 
 historial="$HOME/Documents/define-history.md"
-icono="/home/carlosg/nixos-dotfiles/icons/define.png"
+icono="/home/carlosg/nixos-dotfiles/img/define.png"
 word="$(echo "${raw_word:0:1}" | tr '[:lower:]' '[:upper:]')${raw_word:1}"
 
 # 2. Query (Rápida)
