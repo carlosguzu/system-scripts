@@ -5,7 +5,7 @@ data=$(curl -s "https://www.datos.gov.co/resource/32sa-8pi3.json?vigenciadesde=$
 trm=$(echo "$data" | jq -r '.[0].valor')
 
 if [ -z "$trm" ] || [ "$trm" == "null" ]; then
-    notify-send -u critical "Error de Conversor" "No se pudo obtener la TRM de hoy." -t 5000
+    notify-send -u critical "Error de Conversor" "No se pudo obtener la TRM de hoy." -t 3000
     exit 1
 fi
 
