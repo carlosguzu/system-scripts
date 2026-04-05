@@ -18,6 +18,7 @@ do
     # 1. Ignorar temporales y archivos de bloqueo
     if [[ "$FILENAME" == *.part ]] || \
        [[ "$FILENAME" == *.tmp ]] || \
+       [[ "$FILENAME" == *.tmp.* ]] || \
        [[ "$FILENAME" == .~* ]] || \
        [[ "$FILENAME" == ~$* ]] || \
        [[ "$FILENAME" == *.swx ]] || \
