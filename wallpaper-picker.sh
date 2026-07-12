@@ -8,34 +8,58 @@ SCREENLOCK_SYMLINK="$HOME/.cache/current_screenlock"
 
 if [ -n "$1" ]; then
     # Menú secundario sin barra de búsqueda para elegir dónde aplicar la imagen
-    opcion=$(printf "wallpaper\nscreenlock\nboth" | rofi -dmenu -p "Apply to:" -theme-str 'window {width: 250px;} mainbox {children: [inputbar, listview];} inputbar {children: [prompt];} listview {lines: 3;}' -i)
+    opcion=$(printf "Wallpaper\nScreenlock\nBoth" | rofi -dmenu -p "Apply to:" -theme-str 'window {width: 250px;} mainbox {children: [inputbar, listview];} inputbar {children: [prompt];} listview {lines: 3;}' -i)
 
-    # Si presionas Escape o cierras el menú sin elegir, el script se cancela
+    # Si presionas Escape o closes el menú sin elegir, el script se cancela
     if [ -z "$opcion" ]; then
         exit 0
     fi
 
-    # Lógica para wallpaper o ambos
-    if [ "$opcion" = "wallpaper" ] || [ "$opcion" = "both" ]; then
-        # 1. Cambiar el fondo con swww (con tu transición fluida)
+    # OPCIÓN 1: Solo escritorio
+    if [ "$opcion" = "Wallpaper" ]; then
         swww img "$1" --transition-type grow --transition-pos top --transition-step 100 --transition-fps 60
-
         sleep 2.5
-
-        # 2. Generar el esquema de colores con pywal16
         wal -i "$1" -n
-
-        # 3. Crear (o sobrescribir) el enlace simbólico para Hyprland
         ln -sf "$1" "$SYMLINK_FILE"
+
+	pkill waybar
+
+	waybar &
     fi
 
-    # Lógica para screenlock o ambos
-    if [ "$opcion" = "screenlock" ] || [ "$opcion" = "both" ]; then
-        # Crear (o sobrescribir) el enlace simbólico para Hyprlock
+    # OPCIÓN 2: Solo pantalla de bloqueo
+    if [ "$opcion" = "Screenlock" ]; then
         ln -sf "$1" "$SCREENLOCK_SYMLINK"
+        
+        # 1. Generar los colores de la imagen elegida para el bloqueo
+        wal -i "$1" -n
+        # 2. Guardarlo en tu archivo independiente de lockscreen
+        cp "$HOME/.cache/wal/colors-hyprland.conf" "$HOME/.cache/wal/colors-hyprland-lock.conf"
+        
+        # 3. Como pywal rompió los colores del escritorio, los restauramos usando el enlace actual
+        if [ -L "$SYMLINK_FILE" ]; then
+            wal -i "$(readlink -f "$SYMLINK_FILE")" -n
+        fi
     fi
 
-    # Notificación final (adaptada para mostrar qué se actualizó)
+    # OPCIÓN 3: Ambos entornos
+    if [ "$opcion" = "Both" ]; then
+        swww img "$1" --transition-type grow --transition-pos top --transition-step 100 --transition-fps 60
+        sleep 2.5
+        wal -i "$1" -n
+        ln -sf "$1" "$SYMLINK_FILE"
+        ln -sf "$1" "$SCREENLOCK_SYMLINK"
+        
+        # Duplicamos el archivo para que tanto el escritorio como el lock tengan la misma paleta nueva
+        cp "$HOME/.cache/wal/colors-hyprland.conf" "$HOME/.cache/wal/colors-hyprland-lock.conf"
+
+	pkill waybar
+
+	waybar &
+
+    fi
+
+    # Notificación final
     notify-send "New look!" "Applied to: $opcion" -i /home/carlosg/nixos-dotfiles/img/photo.png -t 3000
 
     exit 0
