@@ -1,11 +1,10 @@
 #!/usr/bin/env bash
 
-current_date=$(date +"%Y-%m-%dT00:00:00.000")
-data=$(curl -s "https://www.datos.gov.co/resource/32sa-8pi3.json?vigenciadesde=${current_date}")
+data=$(curl -s 'https://www.datos.gov.co/resource/32sa-8pi3.json?$limit=1&$order=vigenciadesde%20DESC')
 trm=$(echo "$data" | jq -r '.[0].valor')
 
 if [ -z "$trm" ] || [ "$trm" == "null" ]; then
-    notify-send -u critical "Error de Conversor" "No se pudo obtener la TRM de hoy." -t 3000
+    notify-send -u normal "Error de Conversor" "No se pudo obtener la TRM." -t 3000
     exit 1
 fi
 
