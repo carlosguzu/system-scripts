@@ -27,8 +27,9 @@ monitor_battery() {
             # CASO 1: BATERÍA AL 100% (Y NO DESCARGANDO)
             # ==========================================
             if [ "$CAPACITY" -eq 100 ] && [ "$STATUS" != "Discharging" ]; then
+#	    if { [ "$STATUS" = "Full" ] || [ "$CAPACITY" -ge 99 ]; } && [ "$STATUS" != "Discharging" ]; then
                 if [ "$NOTIFIED_100" = false ]; then
-                    notify-send -u normal -t 5000 "🔋 Batería al 100%" "<i>Por favor, desconecta el cargador.</i>"
+                    notify-send -u normal -t 5000 "🔋 Batería llena" "<i>Por favor, desconecta el cargador.</i>"
                     pw-play "$SOUND_FILE" &
                     NOTIFIED_100=true
                 fi
@@ -95,19 +96,30 @@ udevadm monitor --udev --property --subsystem-match=usb --subsystem-match=block 
         if [[ "$subsystem" == "usb" && "$devtype" == "usb_device" ]]; then
             
             if [[ "$action" == "add" ]]; then
-		if [[ "$usb_interfaces" != *:08* ]]; then
-                	notify-send -i "$ICON_PATH" -t 3000 "Hardware Conectado" "$nombre_limpio" 2>/dev/null
-                	pw-play "$SOUND_FILE" &
-		fi 
+                # Excluir pendrives (:08*) y dispositivos ADB (*ff4201*) para evitar notificaciones duplicadas
+                if [[ "$usb_interfaces" != *:08* && "$usb_interfaces" != *ff4201* ]]; then
+                    notify-send -i "$ICON_PATH" -t 3000 "Hardware Conectado" "$nombre_limpio" 2>/dev/null
+                    pw-play "$SOUND_FILE" &
+                fi 
             elif [[ "$action" == "remove" ]]; then
+                # Si había un montaje adbfs y el dispositivo fue desconectado, desmontar limpiamente
+                if grep -qs "fuse.adbfs" /proc/mounts; then
+                    if ! adb devices 2>/dev/null | grep -qE "^\S+\s+device\b"; then
+                        grep "fuse.adbfs" /proc/mounts | awk '{print $2}' | while read -r mnt; do
+                            fusermount -u -z "$mnt" 2>/dev/null
+                            rmdir "$mnt" 2>/dev/null
+                        done
+                    fi
+                fi
+
                 # Solución a tu observación: Si udev detecta remove, es porque ya se sacó físicamente.
                 notify-send -i "$ICON_PATH" -t 3000 "Dispositivo Desconectado" "$nombre_limpio" 2>/dev/null
                 pw-play "$SOUND_FILE" &
             fi
         fi
 
-# ==========================================
-        # EVENTO B: AUTOMONTAJE DE ALMACENAMIENTO
+        # ==========================================
+        # EVENTO B: AUTOMONTAJE DE ALMACENAMIENTO (USB / Discos)
         # ==========================================
         if [[ "$subsystem" == "block" && "$action" == "add" && -n "$fs_type" ]]; then
             
@@ -134,6 +146,72 @@ udevadm monitor --udev --property --subsystem-match=usb --subsystem-match=block 
                         # independiente de la vida del script
                         foot -e yazi "$mount_point" >/dev/null 2>&1 & disown
                     fi
+                fi
+            ) &
+        fi
+
+        # ==========================================
+        # EVENTO C: AUTOMONTAJE DE ANDROID (ADB / adbfs)
+        # ==========================================
+        if [[ "$subsystem" == "usb" && "$devtype" == "usb_device" && "$action" == "add" && "$usb_interfaces" == *ff4201* ]]; then
+            (
+                # Esperar hasta 4 segundos a que el daemon de adb detecte el dispositivo autorizado
+                adb_device=""
+                for i in {1..8}; do
+                    adb_device=$(adb devices -l 2>/dev/null | grep -E "^\S+\s+device\b" | head -n 1)
+                    [[ -n "$adb_device" ]] && break
+                    sleep 0.5
+                done
+
+                if [[ -n "$adb_device" ]]; then
+                    dev_id=$(echo "$adb_device" | awk '{print $1}')
+                    raw_model=$(echo "$adb_device" | grep -o 'model:[^ ]*' | cut -d: -f2)
+                    brand_name=$(echo "$raw_model" | cut -d_ -f1)
+                    [[ -z "$brand_name" ]] && brand_name="Android"
+                    
+                    mount_point="$HOME/$brand_name"
+                    mkdir -p "$mount_point"
+
+                    # Montar almacenamiento interno (/sdcard) si no está montado
+                    if ! grep -qs " $mount_point " /proc/mounts; then
+                        if command -v adbfs >/dev/null 2>&1; then
+                            adbfs -o nonempty,modules=subdir,subdir=/sdcard "$mount_point" 2>/dev/null
+                        else
+                            nix-shell -p adbfs-rootless --run "adbfs -o nonempty,modules=subdir,subdir=/sdcard '$mount_point'" 2>/dev/null
+                        fi
+                    fi
+
+                    # Montar tarjeta MicroSD externa si existe
+                    ext_sd=$(adb -s "$dev_id" shell ls /storage 2>/dev/null | tr -d '\r' | grep -vE '^(emulated|self|sdcard0|$)' | head -n 1)
+                    if [[ -n "$ext_sd" ]]; then
+                        sd_mount_point="$HOME/${brand_name}-SD"
+                        mkdir -p "$sd_mount_point"
+                        if ! grep -qs " $sd_mount_point " /proc/mounts; then
+                            if command -v adbfs >/dev/null 2>&1; then
+                                adbfs -o nonempty,modules=subdir,subdir="/storage/$ext_sd" "$sd_mount_point" 2>/dev/null
+                            else
+                                nix-shell -p adbfs-rootless --run "adbfs -o nonempty,modules=subdir,subdir='/storage/$ext_sd' '$sd_mount_point'" 2>/dev/null
+                            fi
+                        fi
+                    fi
+
+                    # Si el almacenamiento interno se montó con éxito, notificar con botón Abrir
+                    if grep -qs " $mount_point " /proc/mounts; then
+                        pw-play "$SOUND_FILE" &
+
+                        if user_choice=$(notify-send -i "$ICON_PATH" -t 15000 -u normal \
+                            "Almacenamiento Montado" \
+                            "$mount_point" \
+                            --action="open=📁 Abrir" 2>/dev/null) && [ "$user_choice" == "open" ]; then
+                            foot -e yazi "$mount_point" >/dev/null 2>&1 & disown
+                        fi
+                    else
+                        notify-send -i "$ICON_PATH" -t 3000 "Hardware Conectado" "$nombre_limpio" 2>/dev/null
+                        pw-play "$SOUND_FILE" &
+                    fi
+                else
+                    notify-send -i "$ICON_PATH" -t 3000 "Hardware Conectado" "$nombre_limpio" 2>/dev/null
+                    pw-play "$SOUND_FILE" &
                 fi
             ) &
         fi

@@ -19,7 +19,7 @@ TMP_FILE="/tmp/screenshot_${ID}.png"
 # --- MAGIA DEL FREEZE ---
 pkill -9 hyprpicker 2>/dev/null
 hyprpicker -r -z &
-sleep 0.2
+sleep 0.3
 # ------------------------
 
 case "$MODE" in
@@ -46,11 +46,13 @@ if [ -z "$GEOMETRY" ]; then
     exit 0
 fi
 
+# Descongelamos ANTES de capturar para que grim capture directamente la pantalla limpia
+# y no la capa/overlay de hyprpicker (lo cual causaba que la imagen saliera negra).
+pkill -9 hyprpicker 2>/dev/null
+sleep 0.05
+
 # Tomamos la captura usando las coordenadas exactas
 grim -g "$GEOMETRY" "$TMP_FILE"
-
-# Descongelamos inmediatamente apenas se toma la foto
-pkill -9 hyprpicker 2>/dev/null
 
 # ABRIMOS EL CANDADO: Cerramos el canal 9 para que puedas tomar otra captura
 # incluso si la notificación actual todavía está en pantalla.

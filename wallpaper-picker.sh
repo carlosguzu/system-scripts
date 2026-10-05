@@ -60,7 +60,8 @@ if [ -n "$1" ]; then
     fi
 
     # Notificación final
-    notify-send "New look!" "Applied to: $opcion" -i /home/carlosg/nixos-dotfiles/img/photo.png -t 3000
+    # notify-send "New look!" "Applied to: $opcion" -i /home/carlosg/nixos-dotfiles/img/photo.png -t 3000
+    notify-send "New look!" "Applied to: $opcion" -i "$1" -t 3000
 
     exit 0
 fi

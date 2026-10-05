@@ -10,7 +10,8 @@ mkdir -p "$notes_dir"
 # Función para manejar la creación de una nota nueva
 nueva_nota() {
     # Menú secundario limpio para el nombre
-    new_name=$(echo "" | rofi -dmenu -p "Nombre" -theme-str 'window { width: 400px; } listview { lines: 0; }')
+    # new_name=$(echo "" | rofi -dmenu -p "Nombre" -theme-str 'window { width: 400px; }  element-icon { size: 30px; } listview { lines: 0; }')
+    new_name=$(echo "" | fuzzel --dmenu --prompt="Nombre " --lines=0 --width=35)
     
     # Si presionas Esc, salimos limpiamente
     if [ $? -ne 0 ]; then
@@ -33,7 +34,8 @@ nueva_nota() {
 
 # Función principal que lanza el menú inicial
 menu_principal() {
-    choice=$({ echo "$opcion_crear"; ls -1t "$notes_dir" 2>/dev/null; } | rofi -dmenu -i -p "📝 Note" -theme-str 'window { width: 600px; } listview { lines: 5; fixed-height: true; scrollbar: true; } element-icon { size: 80px; }')
+    # choice=$({ echo "$opcion_crear"; ls -1t "$notes_dir" 2>/dev/null; } | rofi -dmenu -i -p "📝 Note" -theme-str 'window { width: 600px; }  element-icon { size: 30px; }  listview { lines: 5; fixed-height: true; scrollbar: true; } ')
+    choice=$({ echo "$opcion_crear"; ls -1t "$notes_dir" 2>/dev/null; } | fuzzel --dmenu --prompt="📝 " --placeholder="Search or create a note" --lines=5 --width=50)
 
     # Evaluamos la elección con un bloque case en lugar de múltiples ifs
     case "$choice" in
