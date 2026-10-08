@@ -22,7 +22,8 @@ fi
 
 # Comprobar si el servicio está corriendo activamente ahora mismo
 IS_RUNNING=false
-if systemctl --user is-active --quiet instagram-cleaner.service 2>/dev/null; then
+SERVICE_STATE=$(systemctl --user is-active instagram-cleaner.service 2>/dev/null || true)
+if [ "$SERVICE_STATE" = "active" ] || [ "$SERVICE_STATE" = "activating" ] || pgrep -f "main.py --execute" >/dev/null 2>&1; then
     IS_RUNNING=true
 fi
 
