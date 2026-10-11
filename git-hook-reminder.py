@@ -12,6 +12,11 @@ import os
 import subprocess
 import sys
 
+IGNORED_REPOS = {
+    "/home/carlosg/Vault/afinia/servidorfiles",
+    "/home/carlosg/Vault/servidorfiles",
+}
+
 def get_git_repo(path: str) -> str | None:
     try:
         res = subprocess.check_output(
@@ -19,6 +24,8 @@ def get_git_repo(path: str) -> str | None:
             stderr=subprocess.DEVNULL,
             text=True,
         ).strip()
+        if res and res in IGNORED_REPOS:
+            return None
         return res if res else None
     except Exception:
         return None
